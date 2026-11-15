@@ -6,21 +6,86 @@
 <title>LudoPulse</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;padding:15px;background:#172033;color:white;text-align:center;font-family:Arial}
+body{
+margin:0;
+padding:18px;
+background:radial-gradient(circle at top,#263b52 0%,#172033 65%);
+color:white;
+text-align:center;
+font-family:Arial,sans-serif;
+min-height:100vh;
+}
 h1{color:#ffd43b}
 .panel{background:#263b52;padding:20px;border-radius:16px;margin:20px auto;max-width:400px}
 button,select{padding:13px 20px;margin:8px;border:0;border-radius:10px;font-size:17px}
+button{
+border-radius:16px;
+font-weight:bold;
+box-shadow:0 5px 12px rgba(0,0,0,0.3);
+transition:0.2s;
+}
+
+button:active{
+transform:scale(0.96);
+}
 button{background:#16a34a;color:white}
 #game{display:none}
-#board{width:min(94vw,420px);aspect-ratio:1;margin:18px auto;display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);background:white;border:3px solid white}
-.cell{border:1px solid #bbb;background:#f1f5f9;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0}
-.red{background:#ef4444}.green{background:#22c55e}
-.yellow{background:#eab308}.blue{background:#3b82f6}
-.finish{background:#fef08a!important;border:3px solid #f59e0b!important;position:relative;z-index:2}
-.home{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);padding:12%;gap:5%;border:5px solid white}
-.token{width:90%;height:90%;border:2px solid white;border-radius:50%;font-size:11px;color:white;padding:0}
+#board{width:min(94vw,420px);aspect-ratio:1;margin:18px auto;display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);background:white;border:3px solid white 
+border-radius:12px;
+box-shadow:
+0 12px 25px rgba(0,0,0,0.35),
+inset 0 0 12px rgba(0,0,0,0.12);
+overflow:hidden;
+}
+.cell{border:1px solid #bbb;background:#f1f5f9;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;position:relative;z-index:1
+box-shadow:inset 1px 1px 2px rgba(255,255,255,0.8),inset -1px -1px 2px rgba(0,0,0,0.12);}
+.red{background:#ef4444}
+.green{background:#22c55e}
+.yellow{background:#eab308}
+.blue{background:#3b82f6}
+.finish{background:#fef08a!important;border:3px solid #f59e0b!important;z-index:2}
+.home{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);padding:12%;gap:5%;border:5px solid white;border-radius:12px;box-shadow:0 8px 18px rgba(0,0,0,0.3),inset 0 0 12px rgba(255,255,255,0.35);}
+  
+
+.token{
+width:90%;
+height:90%;
+border:2px solid rgba(255,255,255,0.95);
+border-radius:50%;
+font-size:12px;
+font-weight:bold;
+color:white;
+padding:0;
+background-image:radial-gradient(circle at 30% 25%,rgba(255,255,255,0.85),rgba(255,255,255,0.15) 25%,rgba(0,0,0,0.18) 75%,rgba(0,0,0,0.35));
+box-shadow:0 5px 10px rgba(0,0,0,0.4),inset 0 2px 4px rgba(255,255,255,0.8),inset 0 -3px 5px rgba(0,0,0,0.3);
+text-shadow:0 2px 3px black;
+transition:transform 0.2s ease,box-shadow 0.2s ease;
+}
+.token.active-turn{
+  
+  animation: playerGlow 0.7s infinite alternate !important;
+  box-shadow: 0 0 15px white, 0 0 30px yellow !important;
+  transform: scale(1.2);
+  filter: brightness(1.8);
+}
+
+@keyframes playerGlow{
+  from{filter: brightness(1);}
+  to{filter: brightness(1.7);}
+}
 .roll{background:#16a34a;color:white}
 #dice{font-size:40px;margin:10px}
+@keyframes diceRoll {
+  0% {transform: rotate(0deg) scale(1);}
+  25% {transform: rotate(90deg) scale(1.2);}
+  50% {transform: rotate(180deg) scale(1);}
+  75% {transform: rotate(270deg) scale(1.2);}
+  100% {transform: rotate(360deg) scale(1);}
+}
+.rolling {
+  animation: diceRoll 0.6s ease-in-out;
+}
+
 #info{font-size:17px}
 #winnerScreen{display:none;background:#263b52;padding:15px;border-radius:15px}
 </style>
@@ -38,6 +103,12 @@ button{background:#16a34a;color:white}
 <option value="3">3 Players</option>
 <option value="4" selected>4 Players</option>
 </select>
+<div class="name-boxes">
+<input id="name0" placeholder="Red Player Name">
+<input id="name1" placeholder="Green Player Name">
+<input id="name2" placeholder="Yellow Player Name">
+<input id="name3" placeholder="Blue Player Name">
+</div>
 <br>
 <button onclick="startGame()">PLAY GAME</button>
 </div>
@@ -48,6 +119,7 @@ button{background:#16a34a;color:white}
 <div id="info">Red Player ki turn</div>
 <div id="dice">🎲</div>
 <button class="roll" onclick="rollDice()">Roll Dice</button>
+<button onclick="toggleMusic()" id="musicBtn">🎵 Music OFF</button>
 <div id="board"></div>
 <div id="winnerScreen">
 <h2 id="winnerText"></h2>
@@ -57,182 +129,387 @@ button{background:#16a34a;color:white}
 </div>
 
 <script>
-const names=["Red","Green","Yellow","Blue"];
+let names=["Red","Green","Yellow","Blue"];
 const colors=["red","green","yellow","blue"];
 const starts=[0,13,26,39];
-const path=[[6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[7,14],[8,14],[8,13],[8,12],[8,11],[8,10],[8,9],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[14,7],[14,6],[13,6],[12,6],[11,6],[10,6],[9,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0],[6,0]];
-const lanes=[[[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],[[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],[[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]]];
+
+const path=[
+[6,1],[6,2],[6,3],[6,4],[6,5],
+[5,6],[4,6],[3,6],[2,6],[1,6],
+[0,6],[0,7],[0,8],[1,8],[2,8],
+[3,8],[4,8],[5,8],[6,9],[6,10],
+[6,11],[6,12],[6,13],[6,14],
+[7,14],[8,14],[8,13],[8,12],
+[8,11],[8,10],[8,9],[9,8],[10,8],
+[11,8],[12,8],[13,8],[14,8],
+[14,7],[14,6],[13,6],[12,6],
+[11,6],[10,6],[9,6],[8,5],[8,4],
+[8,3],[8,2],[8,1],[8,0],[7,0],[6,0]
+];
+
+const lanes=[
+[[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],
+[[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],
+[[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],
+[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]]
+];
+
 const safe=[0,8,13,21,26,34,39,47];
 
-let playerCount=4,turn=0,number=0,waiting=false,gameOver=false;
+let playerCount=4;
+let turn=0;
+let number=0;
+let waiting=false;
+let gameOver=false;
 let pieces=[],cells={},homes=[];
 
 function resetPieces(){
- pieces=names.map(()=>[-1,-1,-1,-1]);
+pieces=names.map(()=>[-1,-1,-1,-1]);
 }
 
 function startGame(){
- playerCount=Number(document.getElementById("playerCount").value);
- document.getElementById("menu").style.display="none";
- document.getElementById("game").style.display="block";
- newGame();
+playerCount=Number(document.getElementById("playerCount").value);
+for(let i=0;i<playerCount;i++){
+let enteredName=document.getElementById("name"+i).value.trim();
+let playerIndex=playerCount===2&&i===1?2:i;
+names[playerIndex]=enteredName || ["Red","Green","Yellow","Blue"][playerIndex];
+}
+document.getElementById("menu").style.display="none";
+document.getElementById("game").style.display="block";
+newGame();
 }
 
 function makeCell(r,c,color=""){
- let d=document.createElement("div");
- d.className="cell "+color;
- d.style.gridRow=r+1;
- d.style.gridColumn=c+1;
- document.getElementById("board").appendChild(d);
- cells[r+","+c]=d;
+let d=document.createElement("div");
+d.className="cell "+color;
+d.style.gridRow=r+1;
+d.style.gridColumn=c+1;
+document.getElementById("board").appendChild(d);
+cells[r+","+c]=d;
 }
 
 function makeHome(r,c,p){
- let d=document.createElement("div");
- d.className="cell "+colors[p]+" home";
- d.style.gridRow=(r+1)+"/span 6";
- d.style.gridColumn=(c+1)+"/span 6";
- document.getElementById("board").appendChild(d);
- homes[p]=d;
+let d=document.createElement("div");
+d.className="cell "+colors[p]+" home";
+d.style.gridRow=(r+1)+"/span 6";
+d.style.gridColumn=(c+1)+"/span 6";
+document.getElementById("board").appendChild(d);
+homes[p]=d;
 }
 
 function buildBoard(){
- const board=document.getElementById("board");
- board.innerHTML="";
- cells={};homes=[];
+const board=document.getElementById("board");
+board.innerHTML="";
+cells={};
+homes=[];
 
- makeHome(0,0,0);
- if(playerCount>=3)makeHome(0,9,1);
- makeHome(9,9,2);
- if(playerCount===4)makeHome(9,0,3);
+makeHome(0,0,0);
+if(playerCount>=3)makeHome(0,9,1);
+makeHome(9,9,2);
+if(playerCount===4)makeHome(9,0,3);
 
- path.forEach(([r,c])=>makeCell(r,c));
- lanes.forEach((lane,p)=>{
-  if(p===0||p===2||p<playerCount){
-   lane.forEach(([r,c],i)=>makeCell(r,c,colors[p]+(i===5?" finish":"")));
-  }
- });
+path.forEach(([r,c])=>makeCell(r,c));
 
- let center=document.createElement("div");
- center.className="cell";
- center.style.gridRow="7/span 3";
- center.style.gridColumn="7/span 3";
- center.style.background="conic-gradient(#22c55e 0 25%,#eab308 0 50%,#3b82f6 0 75%,#ef4444 0)";
- center.style.color="white";
- center.textContent="LUDO";
- board.appendChild(center);
- drawTokens();
+lanes.forEach((lane,p)=>{
+if(p===0||p===2||p<playerCount){
+lane.forEach(([r,c],i)=>{
+makeCell(r,c,colors[p]+(i===5?" finish":""));
+});
+}
+});
+
+let center=document.createElement("div");
+center.className="cell";
+center.style.gridRow="7/span 3";
+center.style.gridColumn="7/span 3";
+center.style.background="conic-gradient(#22c55e 0 25%,#eab308 0 50%,#3b82f6 0 75%,#ef4444 0)";
+center.style.border="3px solid white";
+center.style.borderRadius="8px";
+center.style.boxShadow="0 5px 12px rgba(0,0,0,0.35),inset 0 0 12px rgba(255,255,255,0.35)";
+center.style.textShadow="0 2px 4px rgba(0,0,0,0.7)";
+center.style.color="white";
+center.style.zIndex="0";
+center.textContent="LUDO";
+board.appendChild(center);
+
+drawTokens();
 }
 
 function drawTokens(){
- homes.forEach(h=>{if(h)h.innerHTML=""});
- Object.values(cells).forEach(c=>c.innerHTML="");
+homes.forEach(h=>{if(h)h.innerHTML=""});
+Object.values(cells).forEach(c=>c.innerHTML="");
 
- pieces.forEach((group,p)=>{
-  if(p!==0&&p!==2&&p>=playerCount)return;
-  group.forEach((pos,t)=>{
-   let b=document.createElement("button");
-   b.className="token "+colors[p];
-   b.textContent=t+1;
-   b.onclick=()=>moveToken(p,t);
+pieces.forEach((group,p)=>{
+if(p!==0&&p!==2&&p>=playerCount)return;
 
-   if(pos===-1){
-    if(homes[p])homes[p].appendChild(b);
-   }else if(pos<52){
-    let [r,c]=path[(pos+starts[p])%52];
-    if(cells[r+","+c])cells[r+","+c].appendChild(b);
-   }else if(pos<=57){
-    let [r,c]=lanes[p][pos-52];
-    if(cells[r+","+c])cells[r+","+c].appendChild(b);
-   }
+group.forEach((pos,t)=>{
+let b=document.createElement("button");
+b.className="token "+colors[p]+(p===turn?" active-turn":"");
+b.textContent=t+1;
+b.onclick=()=>moveToken(p,t);
+
+if(pos===-1){
+if(homes[p])homes[p].appendChild(b);
+}else if(pos<52){
+let [r,c]=path[(pos+starts[p])%52];
+if(cells[r+","+c])cells[r+","+c].appendChild(b);
+}else if(pos<=57){
+let [r,c]=lanes[p][pos-52];
+if(cells[r+","+c])cells[r+","+c].appendChild(b);
+}
+});
+});
+}
+function playDiceSound(){
+  let audio=new (window.AudioContext||window.webkitAudioContext)();
+  audio.resume();
+
+  let now=audio.currentTime;
+
+  for(let i=0;i<5;i++){
+    let sound=audio.createOscillator();
+    let volume=audio.createGain();
+    let start=now+i*0.075;
+
+    sound.type="triangle";
+    sound.frequency.setValueAtTime(700+Math.random()*400,start);
+    sound.frequency .exponentialRampToValueAtTime(220,start+0.06);
+
+    volume.gain.setValueAtTime(0.001,start);
+    volume.gain.exponentialRampToValueAtTime(0.09,start+0.01);
+    volume.gain.exponentialRampToValueAtTime(0.001,start+0.07);
+
+    sound.connect(volume);
+    volume.connect(audio.destination);
+
+    sound.start(start);
+    sound.stop(start+0.08);
+  }
+}
+function playCaptureSound(){
+  let audio=new (window.AudioContext||window.webkitAudioContext)();
+  audio.resume();
+
+  let sound=audio.createOscillator();
+  let volume=audio.createGain();
+
+  sound.type="sine";
+  sound.frequency.setValueAtTime(520,audio.currentTime);
+  sound.frequency.exponentialRampToValueAtTime(180,audio.currentTime+0.25);
+
+  volume.gain.setValueAtTime(0.15,audio.currentTime);
+  volume.gain.exponentialRampToValueAtTime(0.001,audio.currentTime+0.25);
+
+  sound.connect(volume);
+  volume.connect(audio.destination);
+
+  sound.start();
+  sound.stop(audio.currentTime+0.25);
+}
+function playWinnerSound(){
+  let audio=new (window.AudioContext||window.webkitAudioContext)();
+  audio.resume();
+
+  let notes=[523,659,784,1047];
+
+  notes.forEach((note,i)=>{
+    let sound=audio.createOscillator();
+    let volume=audio.createGain();
+    let start=audio.currentTime+i*0.18;
+
+    sound.type="triangle";
+    sound.frequency.setValueAtTime(note,start);
+
+    volume.gain.setValueAtTime(0.001,start);
+    volume.gain.exponentialRampToValueAtTime(0.15,start+0.03);
+    volume.gain.exponentialRampToValueAtTime(0.001,start+0.3);
+
+    sound.connect(volume);
+    volume.connect(audio.destination);
+
+    sound.start(start);
+    sound.stop(start+0.3);
   });
- });
 }
+let musicAudio=null;
+let musicTimer=null;
+let musicOn=false;
 
+function toggleMusic(){
+  let btn=document.getElementById("musicBtn");
+
+  if(musicOn){
+    clearInterval(musicTimer);
+    musicAudio.close();
+    musicAudio=null;
+    musicOn=false;
+    btn.textContent="🎵 Music OFF";
+    return;
+  }
+
+  musicAudio=new (window.AudioContext||window.webkitAudioContext)();
+  musicAudio.resume();
+  musicOn=true;
+
+  let notes=[262,330,392,330,294,349,440,349];
+  let i=0;
+
+  function playNote(){
+    if(!musicOn)return;
+
+    let sound=musicAudio.createOscillator();
+    let volume=musicAudio.createGain();
+
+    sound.type="sine";
+    sound.frequency.value=notes[i];
+
+    volume.gain.value=0.12;
+
+    sound.connect(volume);
+    volume.connect(musicAudio.destination);
+
+    sound.start();
+    sound.stop(musicAudio.currentTime+0.4);
+
+    i=(i+1)%notes.length;
+  }
+
+  playNote();
+  musicTimer=setInterval(playNote,450);
+  btn.textContent="🎵 Music ON";
+}
 function rollDice(){
- if(waiting||gameOver)return;
- number=Math.floor(Math.random()*6)+1;
- document.getElementById("dice").textContent=["⚀","⚁","⚂","⚃","⚄","⚅"][number-1];
+if(waiting||gameOver)return;
+playDiceSound();
+let dice=document.getElementById("dice");
+dice.classList.remove("rolling");
+void dice.offsetWidth;
+dice.classList.add("rolling");
+number=Math.floor(Math.random()*6)+1;
 
- if(!pieces[turn].some(x=>x===-1?number===6:x+number<=57)){
-  document.getElementById("info").textContent=names[turn]+" ki turn khatam";
-  waiting=true;
-  setTimeout(nextTurn,900);
-  return;
- }
- waiting=true;
- document.getElementById("info").textContent=names[turn]+" ko "+number+" mila. Goti chunein";
+document.getElementById("dice").textContent=
+["⚀","⚁","⚂","⚃","⚄","⚅"][number-1];
+
+if(!pieces[turn].some(x=>x===-1?number===6:x+number<=57)){
+document.getElementById("info").textContent=
+names[turn]+" ki turn khatam";
+waiting=true;
+setTimeout(nextTurn,900);
+return;
 }
+
+waiting=true;
+document.getElementById("info").textContent=
+names[turn]+" ko "+number+" mila. Goti chunein";
+}
+
 
 function moveToken(p,t){
- if(!waiting||p!==turn||gameOver)return;
- let old=pieces[p][t];
- if(old===-1&&number!==6)return;
- let next=old===-1?0:old+number;
- if(next>57)return;
+if(!waiting||p!==turn||gameOver)return;
 
- let captured=false;
- if(old>=0&&old<52&&next<52){
-  let landing=(next+starts[p])%52;
-  if(!safe.includes(landing)){
-   pieces.forEach((group,op)=>{
-    if(op===p)return;
-    group.forEach((pos,ot)=>{
-     if(pos>=0&&pos<52&&(pos+starts[op])%52===landing){
-      pieces[op][ot]=-1;
-      captured=true;
-     }
-    });
-   });
-  }
- }
- pieces[p][t]=next;
- drawTokens();
- waiting=false;
+let old=pieces[p][t];
 
- if(pieces[p].every(x=>x===57)){
-  gameOver=true;
-  document.getElementById("info").textContent=names[p]+" WINNER!";
-  document.getElementById("winnerText").textContent="🏆 "+names[p]+" PLAYER WINNER!";
-  document.getElementById("winnerScreen").style.display="block";
-  return;
- }
- document.getElementById("info").textContent=captured?"Goti kaat di!":names[p]+" ki goti move hui!";
- if(number!==6)setTimeout(nextTurn,900);
- else document.getElementById("info").textContent+=" Dobara chance!";
+if(old===-1&&number!==6)return;
+
+let next=old===-1?0:old+number;
+
+if(next>57)return;
+
+function animateStep(){
+if(old<next){
+old++;
+pieces[p][t]=old;
+drawTokens();
+setTimeout(animateStep,120);
+return;
 }
 
+let captured=false;
+
+if(next>=0&&next<52){
+let landing=(next+starts[p])%52;
+
+if(!safe.includes(landing)){
+pieces.forEach((group,op)=>{
+if(op===p)return;
+
+group.forEach((pos,ot)=>{
+if(pos>=0&&pos<52&&
+(pos+starts[op])%52===landing){
+pieces[op][ot]=-1;
+captured=true;
+}
+});
+});
+}
+}
+if(captured)playCaptureSound();
+drawTokens();
+waiting=false;
+
+if(pieces[p].every(x=>x===57)){
+gameOver=true;
+playWinnerSound();
+document.getElementById("info").textContent=
+names[p]+" WINNER!";
+
+document.getElementById("winnerText").textContent=
+"🏆 "+names[p]+" PLAYER WINNER!";
+
+document.getElementById("winnerScreen").style.display="block";
+
+return;
+}
+
+document.getElementById("info").textContent=
+captured?"Goti kaat di!":names[p]+" ki goti move hui!";
+
+if(number!==6){
+setTimeout(nextTurn,900);
+}else{
+document.getElementById("info").textContent+=" Dobara chance!";
+}
+}
+
+animateStep();
+}
 
 function nextTurn(){
- if(gameOver)return;
+if(gameOver)return;
 
- if(playerCount===2){
-  turn = turn===0 ? 2 : 0;
- }else if(playerCount===3){
-  turn=(turn+1)%3;
- }else{
-  turn=(turn+1)%4;
- }
-
- waiting=false;
- document.getElementById("dice").textContent="🎲";
- document.getElementById("info").textContent=
- names[turn]+" Player ki turn";
+if(playerCount===2){
+turn=turn===0?2:0;
+}else if(playerCount===3){
+turn=(turn+1)%3;
+}else{
+turn=(turn+1)%4;
 }
 
+waiting=false;
 
+document.getElementById("dice").textContent="🎲";
+document.getElementById("info").textContent=
+names[turn]+" Player ki turn";
+drawTokens();
+}
 
 function newGame(){
- resetPieces();turn=0;number=0;waiting=false;gameOver=false;
- document.getElementById("dice").textContent="🎲";
- document.getElementById("info").textContent="Red Player ki turn";
- document.getElementById("winnerScreen").style.display="none";
- buildBoard();
+resetPieces();
+turn=0;
+number=0;
+waiting=false;
+gameOver=false;
+
+document.getElementById("dice").textContent="🎲";
+document.getElementById("info").textContent=names[turn]+" ki turn";
+document.getElementById("winnerScreen").style.display="none";
+
+buildBoard();
 }
 
 function backMenu(){
- document.getElementById("game").style.display="none";
- document.getElementById("menu").style.display="block";
+document.getElementById("game").style.display="none";
+document.getElementById("menu").style.display="block";
 }
 </script>
 </body>
