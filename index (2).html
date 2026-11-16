@@ -1,0 +1,1130 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LudoPulse</title>
+<style>
+*{box-sizing:border-box}
+body{
+margin:0;
+padding:18px;
+background:radial-gradient(circle at top,#263b52 0%,#172033 65%);
+color:white;
+text-align:center;
+font-family:Arial,sans-serif;
+min-height:100vh;
+}
+h1{color:#ffd43b}
+.panel{background:#263b52;padding:20px;border-radius:16px;margin:20px auto;max-width:400px}
+button,select{padding:13px 20px;margin:8px;border:0;border-radius:10px;font-size:17px}
+button{
+border-radius:16px;
+font-weight:bold;
+box-shadow:0 5px 12px rgba(0,0,0,0.3);
+transition:0.2s;
+}
+
+button:active{
+transform:scale(0.96);
+}
+button{background:#16a34a;color:white}
+#game{display:none}
+#board{width:min(94vw,420px);aspect-ratio:1;margin:18px auto;display:grid;grid-template-columns:repeat(15,1fr);grid-template-rows:repeat(15,1fr);background:white;border:3px solid white 
+border-radius:12px;
+box-shadow:
+0 12px 25px rgba(0,0,0,0.35),
+inset 0 0 12px rgba(0,0,0,0.12);
+overflow:hidden;
+}
+.cell{border:1px solid #bbb;background:#f1f5f9;display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;position:relative;z-index:1
+box-shadow:inset 1px 1px 2px rgba(255,255,255,0.8),inset -1px -1px 2px rgba(0,0,0,0.12);}
+.red{background:#ef4444}
+.green{background:#22c55e}
+.yellow{background:#eab308}
+.blue{background:#3b82f6}
+.finish{background:#fef08a!important;border:3px solid #f59e0b!important;z-index:2}
+.home{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);padding:12%;gap:5%;border:5px solid white;border-radius:12px;box-shadow:0 8px 18px rgba(0,0,0,0.3),inset 0 0 12px rgba(255,255,255,0.35);}
+  .home{
+position:relative;
+}
+
+.home-profile{
+position:absolute;
+top:4px;
+left:50%;
+transform:translateX(-50%);
+display:flex;
+align-items:center;
+gap:4px;
+z-index:5;
+background:rgba(0,0,0,0.55);
+padding:3px 6px;
+border-radius:12px;
+color:white;
+font-size:10px;
+max-width:90%;
+}
+
+.home-profile img{
+width:25px;
+height:25px;
+border-radius:50%;
+object-fit:cover;
+}
+
+.token{
+width:90%;
+height:90%;
+border:2px solid rgba(255,255,255,0.95);
+border-radius:50%;
+font-size:12px;
+font-weight:bold;
+color:white;
+padding:0;
+background-image:radial-gradient(circle at 30% 25%,rgba(255,255,255,0.85),rgba(255,255,255,0.15) 25%,rgba(0,0,0,0.18) 75%,rgba(0,0,0,0.35));
+box-shadow:0 5px 10px rgba(0,0,0,0.4),inset 0 2px 4px rgba(255,255,255,0.8),inset 0 -3px 5px rgba(0,0,0,0.3);
+text-shadow:0 2px 3px black;
+transition:transform 0.2s ease,box-shadow 0.2s ease;
+}
+.token.active-turn{
+  
+  animation: playerGlow 0.7s infinite alternate !important;
+  box-shadow: 0 0 15px white, 0 0 30px yellow !important;
+  transform: scale(1.2);
+  filter: brightness(1.8);
+}
+
+@keyframes playerGlow{
+  from{filter: brightness(1);}
+  to{filter: brightness(1.7);}
+}
+.roll{background:#16a34a;color:white}
+#dice{font-size:40px;margin:10px}
+@keyframes diceRoll {
+  0% {transform: rotate(0deg) scale(1);}
+  25% {transform: rotate(90deg) scale(1.2);}
+  50% {transform: rotate(180deg) scale(1);}
+  75% {transform: rotate(270deg) scale(1.2);}
+  100% {transform: rotate(360deg) scale(1);}
+}
+.rolling {
+  animation: diceRoll 0.6s ease-in-out;
+}
+
+#info{font-size:17px}
+#winnerScreen{display:none;background:#263b52;padding:15px;border-radius:15px}
+</style>
+</head>
+<body>
+
+<div id="menu">
+
+<div style="display:flex;align-items:center;gap:15px;background:linear-gradient(135deg,#202b48,#493477);padding:15px;border-radius:18px;margin:15px 0;color:white;border:1px solid #8064bd;">
+  <img id="homeProfilePhoto" src="" style="width:65px;height:65px;border-radius:50%;object-fit:cover;border:3px solid gold;">
+  <div>
+    <h3 id="homeProfileName" style="margin:0;">Player</h3>
+    <p style="margin:5px 0;color:#ffd700;">⭐ Level 1</p>
+  </div>
+</div>
+<script>
+document.getElementById("homeProfileName").innerText =
+localStorage.getItem("playerName0") || "Player";
+
+document.getElementById("homeProfilePhoto").src =
+localStorage.getItem("playerPhoto0") || "";
+document.addEventListener("DOMContentLoaded", function(){
+  document.getElementById("name0").addEventListener("input", function(){
+    localStorage.setItem("playerName0", this.value);
+    document.getElementById("homeProfileName").innerText = this.value || "Player";
+  });
+});
+</script>
+<div style="display:flex;justify-content:space-around;gap:12px;margin:15px 0;padding:15px;background:linear-gradient(135deg,#26344b,#493477);border:1px solid #8064bd;border-radius:16px;color:white;">
+  <div style="text-align:center;">
+    <div style="font-size:25px;">🪙</div>
+    <h3 style="margin:5px;color:#FFD700;">1,000</h3>
+    <small>COINS</small>
+  </div>
+  <div style="text-align:center;">
+    <div style="font-size:25px;">💎</div>
+    <h3 style="margin:5px;color:#65D9FF;">100</h3>
+    <small>GEMS</small>
+  </div>
+</div>
+<h1>🎲 LudoPulse</h1>
+<div class="panel">
+<h2>Welcome to LudoPulse</h2>
+<p>Apna game shuru karein!</p>
+<p>Players select karein:</p>
+<select id="playerCount" onchange="showPlayerProfiles()">
+<option value="2">2 Players</option>
+<option value="3">3 Players</option>
+<option value="4" selected>4 Players</option>
+</select>
+
+<div id="onlineMode" style="background:linear-gradient(135deg,#202b48,#493477);padding:20px;margin:20px 0;border:1px solid #8064bd;border-radius:18px;color:white;text-align:center;">
+  <h2>🌐 Online Multiplayer</h2>
+  <p>Apne friends ke saath online Ludo kheliye!</p>
+<button onclick="googleLogin()" style="background:#4285F4;color:white;padding:14px 25px;border:0;border-radius:12px;font-size:17px;">
+  🌐 Sign in with Google
+</button>
+  <button onclick="createRoom()" style="background:#00b96b;color:white;padding:14px 25px;border:0;border-radius:12px;font-size:17px;margin:8px;">
+➕ Create Room
+</button>
+
+  <p>Ya Room Code enter karein:</p>
+
+  <input id="roomCode" placeholder="Enter Room Code" 
+  style="padding:13px;width:80%;border-radius:10px;font-size:16px;">
+
+  <br>
+
+  <button onclick="joinRoom()" style="background:#2563eb;color:white;padding:14px 25px;border:0;border-radius:12px;font-size:17px;margin:12px;">
+    🎮 Join Room
+  </button>
+
+  <p id="onlineStatus">Online connection setup pending</p>
+<div id="roomInfo" style="display:none;background:#151b2e;padding:15px;border-radius:12px;margin-top:12px;">
+  <p>🎮 Your Room Code</p>
+  <h3 id="roomCodeDisplay"></h3>
+  <button onclick="copyRoomCode()" style="background:#f59e0b;color:white;padding:10px 20px;border:0;border-radius:8px;">
+    📋 Copy Room Code
+  </button>
+</div>
+<div id="roomLobby" style="display:none;background:#151b2e;padding:15px;border-radius:12px;margin-top:15px;color:white;">
+  <h3>🎮 Room Lobby</h3>
+  <p id="lobbyStatus">Waiting for players...</p>
+  <div id="playersList"></div>
+  <button onclick="startOnlineGame()" style="background:#00b96b;color:white;padding:14px 25px;border:0;border-radius:12px;font-size:18px;margin-top:15px;">
+  🎮 START ONLINE GAME
+</button>
+</div>
+</div>
+
+<div id="playerProfiles">
+
+  <div class="player-card" id="profile0">
+    <h3>🔴 Red Player</h3>
+    <img id="photo0" src="" width="80" height="80" style="border-radius:50%;object-fit:cover;">
+    <br>
+    <input type="file" accept="image/*" onchange="loadPlayerPhoto(event,0)">
+    <br>
+    <input id="name0" placeholder="Red Player Name">
+  </div>
+
+  <div class="player-card" id="profile1">
+    <h3>🟢 Green Player</h3>
+    <img id="photo1" src="" width="80" height="80" style="border-radius:50%;object-fit:cover;">
+    <br>
+    <input type="file" accept="image/*" onchange="loadPlayerPhoto(event,1)">
+    <br>
+    <input id="name1" placeholder="Green Player Name">
+  </div>
+
+  <div class="player-card" id="profile2">
+    <h3>🟡 Yellow Player</h3>
+    <img id="photo2" src="" width="80" height="80" style="border-radius:50%;object-fit:cover;">
+    <br>
+    <input type="file" accept="image/*" onchange="loadPlayerPhoto(event,2)">
+    <br>
+    <input id="name2" placeholder="Yellow Player Name">
+  </div>
+
+  <div class="player-card" id="profile3">
+    <h3>🔵 Blue Player</h3>
+    <img id="photo3" src="" width="80" height="80" style="border-radius:50%;object-fit:cover;">
+    <br>
+    <input type="file" accept="image/*" onchange="loadPlayerPhoto(event,3)">
+    <br>
+    <input id="name3" placeholder="Blue Player Name">
+  </div>
+
+</div>
+<br>
+<button onclick="startGame()" style="background:linear-gradient(135deg,#00e676,#00964b);color:white;font-size:25px;font-weight:bold;padding:20px 55px;border:none;border-radius:18px;box-shadow:0 7px 0 #006b38,0 10px 20px #0008;cursor:pointer;margin:20px;">
+🎮 PLAY LUDO
+</button>
+</div>
+<div style="margin:20px 0;padding:15px;background:linear-gradient(135deg,#202b48,#493477);border-radius:18px;color:white;text-align:center;">
+  <h2>🎮 Choose Game Mode</h2>
+
+  <button onclick="startGame()" style="display:block;width:100%;padding:15px;margin:10px 0;background:#00b96b;color:white;border:0;border-radius:12px;font-size:18px;font-weight:bold;">
+    🏠 LOCAL PLAY
+  </button>
+
+  <button onclick="alert('Computer Mode coming soon!')" style="display:block;width:100%;padding:15px;margin:10px 0;background:#365edb;color:white;border:0;border-radius:12px;font-size:18px;font-weight:bold;">
+    🤖 PLAY WITH COMPUTER
+  </button>
+
+  <button onclick="alert('Online Multiplayer coming soon!')" style="display:block;width:100%;padding:15px;margin:10px 0;background:#8b45d6;color:white;border:0;border-radius:12px;font-size:18px;font-weight:bold;">
+    🌐 ONLINE PLAY
+  </button>
+</div>
+<div style="margin:20px 0;padding:20px;background:linear-gradient(135deg,#202b48,#493477);border:1px solid #8064bd;border-radius:18px;color:white;text-align:center;">
+
+<h2>👥 My Friends</h2>
+<p>Apne friends ko add karein!</p>
+
+<input id="friendName" placeholder="Friend ka naam" style="padding:12px;width:90%;border-radius:10px;margin:8px;">
+
+<input id="friendPhoto" type="file" accept="image/*" style="margin:10px;width:90%;">
+
+<button onclick="addFriend()" style="background:#00b96b;color:white;padding:13px 25px;border:0;border-radius:12px;font-weight:bold;">
+➕ ADD FRIEND
+</button>
+
+<h3>👥 Friends List</h3>
+<div id="friendsList"></div>
+
+</div>
+<div style="margin:20px 0;padding:20px;background:linear-gradient(135deg,#202b48,#493477);border:1px solid #8064bd;border-radius:18px;color:white;text-align:center;">
+
+<h2>🏆 Leaderboard</h2>
+<p>Top 10 Players</p>
+<div id="otherPlayers"></div>
+
+
+<div style="margin:20px 0;padding:20px;background:linear-gradient(135deg,#202b48,#493477);border:1px solid #8064bd;border-radius:18px;color:white;text-align:center;">
+  <h2>⚙️ Quick Settings</h2>
+  <button onclick="openProfile()" style="background:#2563eb;color:white;padding:13px 22px;border:0;border-radius:12px;font-size:17px;margin:8px;">👤 My Profile</button>
+  <button onclick="toggleMusic()" style="background:#00b96b;color:white;padding:13px 22px;border:0;border-radius:12px;font-size:17px;margin:8px;">🎵 Music ON/OFF</button>
+  <button onclick="toggleSoundEffects()" style="background:#8b45d6;color:white;padding:13px 22px;border:0;border-radius:12px;font-size:17px;margin:8px;">🔊 Game Sound ON/OFF</button>
+</div>
+
+</div>
+</div>
+
+<div id="game">
+<h1>🎲 LudoPulse</h1>
+<div id="info">Red Player ki turn</div>
+<div id="dice">🎲</div>
+<button class="roll" onclick="rollDice()">Roll Dice</button>
+<button onclick="togglePause()" id="pauseBtn">⏸️ Pause Game</button>
+<button onclick="toggleMusic()" id
+ ="musicBtn">🎵 Music OFF</button>
+<button onclick="toggleSettings()">⚙️ Settings</button>
+<div id="settingsPanel" style="display:none;">
+  <h2>⚙️ LudoPulse Settings</h2>
+  <p>🎵 Music control neeche hai.</p>
+  <button onclick="toggleMusic()">🎵 Music ON/OFF</button>
+  <button onclick="toggleSoundEffects()" id="soundBtn">🔊 Game Sound ON</button>
+  <button onclick="toggleSettings()">❌ Close Settings</button>
+</div>
+<div id="board"></div>
+<div id="winnerScreen">
+<h2 id="winnerText"></h2>
+<button onclick="newGame()">New Game</button>
+</div>
+<button onclick="backMenu()">Main Menu</button>
+<button onclick="openProfile()">👤 Player Profile</button>
+</div>
+<div id="profileScreen" style="display:none;text-align:center;padding:20px;color:white;">
+  <h2>👤 All Player Profiles</h2>
+
+<div id="allProfiles"></div>
+
+<button onclick="closeProfile()">Back</button>
+</div>
+<script>
+let names=["Red","Green","Yellow","Blue"];
+const colors=["red","green","yellow","blue"];
+const starts=[0,13,26,39];
+
+const path=[
+[6,1],[6,2],[6,3],[6,4],[6,5],
+[5,6],[4,6],[3,6],[2,6],[1,6],
+[0,6],[0,7],[0,8],[1,8],[2,8],
+[3,8],[4,8],[5,8],[6,9],[6,10],
+[6,11],[6,12],[6,13],[6,14],
+[7,14],[8,14],[8,13],[8,12],
+[8,11],[8,10],[8,9],[9,8],[10,8],
+[11,8],[12,8],[13,8],[14,8],
+[14,7],[14,6],[13,6],[12,6],
+[11,6],[10,6],[9,6],[8,5],[8,4],
+[8,3],[8,2],[8,1],[8,0],[7,0],[6,0]
+];
+
+const lanes=[
+[[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],
+[[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],
+[[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],
+[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]]
+];
+
+const safe=[0,8,13,21,26,34,39,47];
+
+let playerCount=4;
+let turn=0;
+let number=0;
+let waiting=false;
+let gameOver=false;
+let pieces=[],cells={},homes=[];
+
+function resetPieces(){
+pieces=names.map(()=>[-1,-1,-1,-1]);
+}
+function showPlayerProfiles(){
+  let count=Number(document.getElementById("playerCount").value);
+
+  for(let i=0;i<4;i++){
+    document.getElementById("profile"+i).style.display=
+    i<count?"block":"none";
+  }
+}
+function startGame(){
+playerCount=Number(document.getElementById("playerCount").value);
+for(let i=0;i<playerCount;i++){
+let enteredName=document.getElementById("name"+i).value.trim();
+let playerIndex=playerCount===2&&i===1?2:i;
+names[playerIndex]=enteredName || ["Red","Green","Yellow","Blue"][playerIndex];
+}
+document.getElementById("menu").style.display="none";
+document.getElementById("game").style.display="block";
+newGame();
+}
+
+function makeCell(r,c,color=""){
+let d=document.createElement("div");
+d.className="cell "+color;
+d.style.gridRow=r+1;
+d.style.gridColumn=c+1;
+document.getElementById("board").appendChild(d);
+cells[r+","+c]=d;
+}
+
+function makeHome(r,c,p){
+let d=document.createElement("div");
+d.className="cell "+colors[p]+" home";
+d.style.gridRow=(r+1)+"/span 6";
+d.style.gridColumn=(c+1)+"/span 6";
+document.getElementById("board").appendChild(d);
+homes[p]=d;
+}
+
+function buildBoard(){
+const board=document.getElementById("board");
+board.innerHTML="";
+cells={};
+homes=[];
+
+makeHome(0,0,0);
+if(playerCount>=3)makeHome(0,9,1);
+makeHome(9,9,2);
+if(playerCount===4)makeHome(9,0,3);
+
+path.forEach(([r,c])=>makeCell(r,c));
+
+lanes.forEach((lane,p)=>{
+if(p===0||p===2||p<playerCount){
+lane.forEach(([r,c],i)=>{
+makeCell(r,c,colors[p]+(i===5?" finish":""));
+});
+}
+});
+
+let center=document.createElement("div");
+center.className="cell";
+center.style.gridRow="7/span 3";
+center.style.gridColumn="7/span 3";
+center.style.background="conic-gradient(#22c55e 0 25%,#eab308 0 50%,#3b82f6 0 75%,#ef4444 0)";
+center.style.border="3px solid white";
+center.style.borderRadius="8px";
+center.style.boxShadow="0 5px 12px rgba(0,0,0,0.35),inset 0 0 12px rgba(255,255,255,0.35)";
+center.style.textShadow="0 2px 4px rgba(0,0,0,0.7)";
+center.style.color="white";
+center.style.zIndex="0";
+center.textContent="LUDO";
+board.appendChild(center);
+
+drawTokens();
+}
+
+function drawTokens(){
+homes.forEach(h=>{if(h)h.innerHTML=""});
+Object.values(cells).forEach(c=>c.innerHTML="");
+
+pieces.forEach((group,p)=>{
+if(p!==0&&p!==2&&p>=playerCount)return;
+
+group.forEach((pos,t)=>{
+let b=document.createElement("button");
+b.className="token "+colors[p]+(p===turn?" active-turn":"");
+b.textContent=t+1;
+b.onclick=()=>moveToken(p,t);
+
+if(pos===-1){
+if(homes[p])homes[p].appendChild(b);
+}else if(pos<52){
+let [r,c]=path[(pos+starts[p])%52];
+if(cells[r+","+c])cells[r+","+c].appendChild(b);
+}else if(pos<=57){
+let [r,c]=lanes[p][pos-52];
+if(cells[r+","+c])cells[r+","+c].appendChild(b);
+}
+});
+});
+
+  for(let p=0;p<4;p++){
+  let active=playerCount===2?
+  (p===0||p===2):p<playerCount;
+
+  if(!active||!homes[p])continue;
+
+  let photo=localStorage.getItem("playerPhoto"+p)||"";
+  let name=localStorage.getItem("playerName"+p)||names[p];
+
+  let profile=document.createElement("div");
+  profile.className="home-profile";
+
+  if(photo){
+    let img=document.createElement("img");
+    img.src=photo;
+    profile.appendChild(img);
+  }
+
+  let label=document.createElement("span");
+  label.textContent=name;
+  profile.appendChild(label);
+
+  homes[p].appendChild(profile);
+}
+}
+function playDiceSound(){
+  if(!soundEffectsOn)return;
+  let audio=new (window.AudioContext||window.webkitAudioContext)();
+  audio.resume();
+
+  let now=audio.currentTime;
+
+  for(let i=0;i<5;i++){
+    let sound=audio.createOscillator();
+    let volume=audio.createGain();
+    let start=now+i*0.075;
+
+    sound.type="triangle";
+    sound.frequency.setValueAtTime(700+Math.random()*400,start);
+    sound.frequency .exponentialRampToValueAtTime(220,start+0.06);
+
+    volume.gain.setValueAtTime(0.001,start);
+    volume.gain.exponentialRampToValueAtTime(0.09,start+0.01);
+    volume.gain.exponentialRampToValueAtTime(0.001,start+0.07);
+
+    sound.connect(volume);
+    volume.connect(audio.destination);
+
+    sound.start(start);
+    sound.stop(start+0.08);
+  }
+}
+function playCaptureSound(){
+  if(!soundEffectsOn)return;
+  let audio=new (window.AudioContext||window.webkitAudioContext)();
+  audio.resume();
+
+  let sound=audio.createOscillator();
+  let volume=audio.createGain();
+
+  sound.type="sine";
+  sound.frequency.setValueAtTime(520,audio.currentTime);
+  sound.frequency.exponentialRampToValueAtTime(180,audio.currentTime+0.25);
+
+  volume.gain.setValueAtTime(0.15,audio.currentTime);
+  volume.gain.exponentialRampToValueAtTime(0.001,audio.currentTime+0.25);
+
+  sound.connect(volume);
+  volume.connect(audio.destination);
+
+  sound.start();
+  sound.stop(audio.currentTime+0.25);
+}
+function playWinnerSound(){
+  if(!soundEffectsOn)return;
+  let audio=new (window.AudioContext||window.webkitAudioContext)();
+  audio.resume();
+
+  let notes=[523,659,784,1047];
+
+  notes.forEach((note,i)=>{
+    let sound=audio.createOscillator();
+    let volume=audio.createGain();
+    let start=audio.currentTime+i*0.18;
+
+    sound.type="triangle";
+    sound.frequency.setValueAtTime(note,start);
+
+    volume.gain.setValueAtTime(0.001,start);
+    volume.gain.exponentialRampToValueAtTime(0.15,start+0.03);
+    volume.gain.exponentialRampToValueAtTime(0.001,start+0.3);
+
+    sound.connect(volume);
+    volume.connect(audio.destination);
+
+    sound.start(start);
+    sound.stop(start+0.3);
+  });
+}
+let musicAudio=null;
+let soundEffectsOn=true;
+let musicTimer=null;
+let musicOn=false;
+let gamePaused=false;
+function toggleSoundEffects(){
+  soundEffectsOn=!soundEffectsOn;
+
+  let btn=document.getElementById("soundBtn");
+
+  btn.textContent=soundEffectsOn
+  ?"🔊 Game Sound ON"
+  :"🔇 Game Sound OFF";
+}
+function togglePause(){
+  gamePaused=!gamePaused;
+
+  let btn=document.getElementById("pauseBtn");
+
+  btn.textContent=gamePaused
+  ?"▶️ Resume Game"
+  :"⏸️ Pause Game";
+
+  document.getElementById("info").textContent=
+  gamePaused?"Game Paused":names[turn]+" ki turn";
+}
+function toggleMusic(){
+  let btn=document.getElementById("musicBtn");
+
+  if(musicOn){
+    clearInterval(musicTimer);
+    musicAudio.close();
+    musicAudio=null;
+    musicOn=false;
+    btn.textContent="🎵 Music OFF";
+    return;
+  }
+
+  musicAudio=new (window.AudioContext||window.webkitAudioContext)();
+  musicAudio.resume();
+  musicOn=true;
+
+  let notes=[262,330,392,330,294,349,440,349];
+  let i=0;
+
+  function playNote(){
+    if(!musicOn)return;
+
+    let sound=musicAudio.createOscillator();
+    let volume=musicAudio.createGain();
+
+    sound.type="sine";
+    sound.frequency.value=notes[i];
+
+    volume.gain.value=0.12;
+
+    sound.connect(volume);
+    volume.connect(musicAudio.destination);
+
+    sound.start();
+    sound.stop(musicAudio.currentTime+0.4);
+
+    i=(i+1)%notes.length;
+  }
+
+  playNote();
+  musicTimer=setInterval(playNote,450);
+  btn.textContent="🎵 Music ON";
+}
+function rollDice(){
+  if(gamePaused)return;
+if(waiting||gameOver)return;
+playDiceSound();
+let dice=document.getElementById("dice");
+dice.classList.remove("rolling");
+void dice.offsetWidth;
+dice.classList.add("rolling");
+number=Math.floor(Math.random()*6)+1;
+
+document.getElementById("dice").textContent=
+["⚀","⚁","⚂","⚃","⚄","⚅"][number-1];
+
+if(!pieces[turn].some(x=>x===-1?number===6:x+number<=57)){
+document.getElementById("info").textContent=
+names[turn]+" ki turn khatam";
+waiting=true;
+setTimeout(nextTurn,900);
+return;
+}
+
+waiting=true;
+document.getElementById("info").textContent=
+names[turn]+" ko "+number+" mila. Goti chunein";
+}
+
+
+function moveToken(p,t){
+  if(gamePaused)return;
+if(!waiting||p!==turn||gameOver)return;
+
+let old=pieces[p][t];
+
+if(old===-1&&number!==6)return;
+
+let next=old===-1?0:old+number;
+
+if(next>57)return;
+
+function animateStep(){
+if(old<next){
+  if(gamePaused)return;
+old++;
+pieces[p][t]=old;
+drawTokens();
+setTimeout(animateStep,120);
+return;
+}
+
+let captured=false;
+
+if(next>=0&&next<52){
+let landing=(next+starts[p])%52;
+
+if(!safe.includes(landing)){
+pieces.forEach((group,op)=>{
+if(op===p)return;
+
+group.forEach((pos,ot)=>{
+if(pos>=0&&pos<52&&
+(pos+starts[op])%52===landing){
+pieces[op][ot]=-1;
+captured=true;
+}
+});
+});
+}
+}
+if(captured)playCaptureSound();
+drawTokens();
+waiting=false;
+
+if(pieces[p].every(x=>x===57)){
+gameOver=true;
+playWinnerSound();
+document.getElementById("info").textContent=
+names[p]+" WINNER!";
+
+document.getElementById("winnerText").textContent=
+"🏆 "+names[p]+" PLAYER WINNER!";
+addWinnerPoints(names[p]);
+document.getElementById("winnerScreen").style.display="block";
+
+return;
+}
+
+document.getElementById("info").textContent=
+captured?"Goti kaat di!":names[p]+" ki goti move hui!";
+
+if(number!==6){
+setTimeout(nextTurn,900);
+}else{
+document.getElementById("info").textContent+=" Dobara chance!";
+}
+}
+
+animateStep();
+}
+
+function nextTurn(){
+if(gameOver)return;
+
+if(playerCount===2){
+turn=turn===0?2:0;
+}else if(playerCount===3){
+turn=(turn+1)%3;
+}else{
+turn=(turn+1)%4;
+}
+
+waiting=false;
+
+document.getElementById("dice").textContent="🎲";
+let photo=localStorage.getItem("playerPhoto"+turn)||"";
+
+document.getElementById("info").innerHTML=
+(photo?'<img src="'+photo+'" style="width:40px;height:40px;border-radius:50%;vertical-align:middle;object-fit:cover;margin-right:8px;">':"")+
+names[turn]+" Player ki turn";
+drawTokens();
+}
+
+function newGame(){
+resetPieces();
+turn=0;
+number=0;
+waiting=false;
+gameOver=false;
+
+document.getElementById("dice").textContent="🎲";
+document.getElementById("info").textContent=names[turn]+" ki turn";
+document.getElementById("winnerScreen").style.display="none";
+
+buildBoard();
+}
+function openProfile(){
+  let count=Number(document.getElementById("playerCount").value);
+  let area=document.getElementById("allProfiles");
+
+  area.innerHTML="";
+
+  for(let i=0;i<count;i++){
+    let name=localStorage.getItem("playerName"+i)||names[i];
+    let photo=localStorage.getItem("playerPhoto"+i);
+
+    area.innerHTML+=`
+      <div style="margin:20px;padding:15px;background:#263b52;border-radius:15px;">
+        <h3>${["🔴","🟢","🟡","🔵"][i]} ${name}</h3>
+        <img src="${photo||""}" style="width:90px;height:90px;border-radius:50%;object-fit:cover;">
+      </div>
+    `;
+  }
+
+  document.getElementById("menu").style.display="none";
+  document.getElementById("profileScreen").style.display="block";
+}
+function backMenu(){
+document.getElementById("game").style.display="none";
+document.getElementById("menu").style.display="block";
+}
+function toggleSettings(){
+  let panel=document.getElementById("settingsPanel");
+  panel.style.display=panel.style.display==="block"?"none":"block";
+}
+function loadProfilePhoto(event){
+  let file=event.target.files[0];
+  if(!file)return;
+
+  let reader=new FileReader();
+  reader.onload=function(){
+    document.getElementById("profilePhoto").src=reader.result;
+    localStorage.setItem("profilePhoto",reader.result);
+  };
+  reader.readAsDataURL(file);
+}
+function loadPlayerPhoto(event,index){
+  let file=event.target.files[0];
+  if(!file)return;
+
+  let reader=new FileReader();
+
+  reader.onload=function(){
+    document.getElementById("photo"+index).src=reader.result;
+    localStorage.setItem("playerPhoto"+index,reader.result);
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function saveProfile(){
+  for(let i=0;i<4;i++){
+    let name=document.getElementById("name"+i).value.trim();
+
+    if(name){
+      localStorage.setItem("playerName"+i,name);
+    }
+  }
+
+  alert("All Player Profiles Saved!");
+}
+
+
+function addFriend(){
+  let name = document.getElementById("friendName").value.trim();
+  let file = document.getElementById("friendPhoto").files[0];
+
+  if(!name){
+    alert("Friend ka naam likhein!");
+    return;
+  }
+
+  let friends = JSON.parse(localStorage.getItem("myFriends") || "[]");
+
+  function saveFriend(photo){
+    friends.push({name:name, photo:photo});
+    localStorage.setItem("myFriends", JSON.stringify(friends));
+    document.getElementById("friendName").value = "";
+    document.getElementById("friendPhoto").value = "";
+    renderFriends();
+    alert("Friend successfully added!");
+  }
+
+  if(file){
+    let reader = new FileReader();
+    reader.onload = function(){
+      saveFriend(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }else{
+    saveFriend("");
+  }
+}
+
+function renderFriends(){
+  let friends = JSON.parse(localStorage.getItem("myFriends") || "[]");
+  let list = document.getElementById("friendsList");
+
+  list.innerHTML = "";
+
+  
+friends.forEach(function(friend,index){
+  list.innerHTML += `
+    <div style="background:#263b52;padding:12px;margin:10px;border-radius:12px;">
+      <img src="${friend.photo}" style="width:50px;height:50px;border-radius:50%;object-fit:cover;">
+      <h3 style="color:white;">${friend.name}</h3>
+      <button onclick="removeFriend(${index})" style="background:#e53935;color:white;padding:10px 20px;border:0;border-radius:10px;font-weight:bold;">
+        ❌ Remove Friend
+      </button>
+    
+
+    </div>
+  `;
+});
+
+}
+
+renderFriends();
+
+function removeFriend(index){
+  let friends = JSON.parse(localStorage.getItem("myFriends") || "[]");
+
+  if(confirm("Kya aap is friend ko remove karna chahte hain?")){
+    friends.splice(index,1);
+    localStorage.setItem("myFriends",JSON.stringify(friends));
+    renderFriends();
+    alert("Friend removed successfully!");
+  }
+}
+function addWinnerPoints(playerName){
+let scores=JSON.parse(localStorage.getItem("ludoScores")||"{}");
+scores[playerName]=(scores[playerName]||0)+100;
+localStorage.setItem("ludoScores",JSON.stringify(scores));
+renderLeaderboard();
+}
+
+function renderLeaderboard(){
+let scores=JSON.parse(localStorage.getItem("ludoScores")||"{}");
+let list=document.getElementById("otherPlayers");
+if(!list)return;
+let sorted=Object.entries(scores).sort((a,b)=>b[1]-a[1]);
+list.innerHTML=sorted.slice(0,10).map((item,index)=>`
+<div style="background:#263b52;padding:12px;margin:10px;border-radius:12px;color:white;">
+🏆 ${index+1}. ${item[0]} — ${item[1]} Points
+</div>`).join("");
+}
+function closeProfile(){
+  document.getElementById("profileScreen").style.display="none";
+  document.getElementById("menu").style.display="block";
+}
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyA2ai8IH9L-cUOSq_qBD3qdwqPYYByRSeU",
+  authDomain: "ludopulse-c6ff5.firebaseapp.com",
+  databaseURL: "https://ludopulse-c6ff5-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ludopulse-c6ff5",
+  storageBucket: "ludopulse-c6ff5.firebasestorage.app",
+  messagingSenderId: "47802853508",
+  appId: "1:47802853508:web:c239a14db910cbaa5a3ad1",
+  measurementId: "G-N9MQ7EVQSQ"
+};
+</script>
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
+<script>
+firebase.initializeApp(firebaseConfig);
+
+const auth = firebase.auth();
+const database = firebase.database();
+
+async function googleLogin(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+
+  try {
+    await auth.signInWithRedirect(provider);
+  } catch(error) {
+    alert("Login Error: " + error.message);
+  }
+}
+
+auth.getRedirectResult().then((result) => {
+  if (result.user) {
+    alert("Welcome " + result.user.displayName);
+  }
+}).catch((error) => {
+  alert(error.message);
+});
+auth.onAuthStateChanged((user) => {
+  if (user) {
+    document.getElementById("onlineStatus").innerText =
+      "Logged in as " + user.displayName;
+
+    document.getElementById("homeProfileName").innerText =
+      user.displayName || "Player";
+
+    if (user.photoURL) {
+      document.getElementById("homeProfilePhoto").src =
+        user.photoURL;
+    }
+  } else {
+    document.getElementById("onlineStatus").innerText =
+      "Please sign in with Google";
+  }
+});
+</script>
+<script>
+function createRoom(){
+  const user = auth.currentUser;
+
+  if(!user){
+    alert("Please sign in with Google first");
+    return;
+  }
+
+  const roomRef = database.ref("rooms").push();
+window.currentRoomRef = roomRef;
+  roomRef.set({
+    host: user.uid,
+    hostName: user.displayName || "Player",
+    players: {
+  [user.uid]: {
+    name: user.displayName || "Player",
+    photo: user.photoURL || ""
+  }
+},
+    status: "waiting",
+    createdAt: Date.now()
+  }).then(() => {
+    window.currentRoomRef = roomRef;
+    document.getElementById("onlineStatus").innerText =
+      "Room Code: " + roomRef.key;
+      document.getElementById("roomInfo").style.display = "block";
+document.getElementById("roomCodeDisplay").innerText = roomRef.key;
+    showRoomLobby(roomRef);
+    alert("Room created successfully!");
+  }).catch(error => {
+    alert("Room Error: " + error.message);
+  });
+}
+async function joinRoom(){
+  const user = auth.currentUser;
+  const code = document.getElementById("roomCode").value.trim();
+
+  if(!user){
+    alert("Please sign in with Google first");
+    return;
+  }
+
+  if(!code){
+    alert("Please enter Room Code");
+    return;
+  }
+
+  const roomRef = database.ref("rooms/" + code);
+
+  try {
+    const snapshot = await roomRef.once("value");
+
+    if(!snapshot.exists()){
+      alert("Room not found!");
+      return;
+    }
+    window.currentRoomRef = roomRef;
+const playersSnapshot = await roomRef.child("players").once("value");
+const players = playersSnapshot.val() || {};
+
+if (!players[user.uid] && Object.keys(players).length >= 4) {
+  alert("Room Full! Maximum 4 players allowed.");
+  return;
+}
+    await roomRef.child("players/" + user.uid).set({
+      name: user.displayName || "Player"
+    });
+
+    document.getElementById("onlineStatus").innerText =
+      "Joined Room: " + code;
+document.getElementById("roomInfo").style.display = "block";
+document.getElementById("roomCodeDisplay").innerText = roomRef.key;
+    showRoomLobby(roomRef);
+    alert("Room joined successfully!");
+  } catch(error) {
+    alert("Join Error: " + error.message);
+  }
+}
+function showRoomLobby(roomRef){
+  document.getElementById("roomLobby").style.display = "block";
+
+  roomRef.child("players").on("value", (snapshot) => {
+    const players = snapshot.val() || {};
+    const list = document.getElementById("playersList");
+
+    list.innerHTML = "";
+
+    Object.values(players).forEach((player) => {
+      const item = document.createElement("p");
+      item.innerText = "👤 " + (player.name || "Player");
+      list.appendChild(item);
+    });
+
+    document.getElementById("lobbyStatus").innerText =
+      "Players: " + Object.keys(players).length + " / 4";
+  });
+  roomRef.child("status").on("value", (snapshot) => {
+  if (snapshot.val() === "playing") {
+    startGame();
+  }
+});
+}
+async function startOnlineGame(){
+  const roomRef = window.currentRoomRef;
+  const user = auth.currentUser;
+
+  if(!roomRef || !user){
+    alert("Please create a room first!");
+    return;
+  }
+
+  try {
+    const snapshot = await roomRef.once("value");
+    const room = snapshot.val();
+
+    if(room.host !== user.uid){
+      alert("Only the Host can start the game!");
+      return;
+    }
+
+    const players = room.players || {};
+
+    if(Object.keys(players).length < 2){
+      alert("At least 2 players are required!");
+      return;
+    }
+
+    await roomRef.update({
+      status: "playing",
+      startedAt: Date.now()
+    });
+
+    alert("Online game start signal sent!");
+  } catch(error) {
+    alert("Start Error: " + error.message);
+  }
+}
+function copyRoomCode(){
+  const code = document.getElementById("roomCodeDisplay").innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    alert("Room Code Copied!");
+  }).catch(() => {
+    alert("Copy nahi hua. Code manually copy karein.");
+  });
+}
+</script>
+</body>
+</html>
